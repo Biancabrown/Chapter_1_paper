@@ -103,7 +103,7 @@ diet_sea <-diet_sea %>% remove_rownames %>% column_to_rownames(var="Species_Name
 diet_sea_Dist <- dist(diet_sea, method = "euclidean")
 
 ```
-#Weight metadata
+#Weight metadata1
 ```{r}
 metadata<-meta(sm_physeq_rare)
 metadata_weight <- subset(metadata, !(is.na(weight.g.)))
