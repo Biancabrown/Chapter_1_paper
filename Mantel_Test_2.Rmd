@@ -159,7 +159,7 @@ diet_rodent_tree_matrix_dist <- dist(diet_rodent_tree_matrix)
 ```
 
 #Mantel Test
-
+#1
 
 ```{r}
 sm_physeq_unifrac_meanDist_dist_1<-as.matrix(sm_physeq_unifrac_meanDist_dist)
