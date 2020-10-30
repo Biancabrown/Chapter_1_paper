@@ -1,0 +1,360 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(microbiome)
+library(microbiomeutilities)
+# install.packages("picante",repos="http://R-Forge.R-project.org") 
+# library(picante)
+#library(picante)
+library(data.table)
+library(DT)
+library(RColorBrewer)
+library(phyloseq)
+library(tibble)
+library(ggpubr)
+library(qiime2R)
+library(tidyverse)
+library(phyloseq)
+library(hilldiv)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+library(phytools)
+library(plyr)
+library(dplyr)
+library(vegan)
+library(ape)
+```
+```{r}
+sm_physeq_rare<-readRDS("~/Documents/Analysis/Chapter_1/R/PhyloseqObjects/sm_physeq_rare_7017.rds")
+sm_physeq_rare
+```
+
+```{r}
+sm_physeq_unifrac = phyloseq::distance(sm_physeq_rare, "unifrac")
+metadata<-meta(sm_physeq_rare)
+sm_physeq_unifrac_meanDist <- meandist(sm_physeq_unifrac, metadata$Species_Name_Phylo)
+sm_physeq_unifrac_meanDist_dist <- dist(sm_physeq_unifrac_meanDist)
+sm_physeq_wunifrac = phyloseq::distance(sm_physeq_rare, "unifrac",weight=TRUE)
+sm_physeq_wunifrac_meanDist <- meandist(sm_physeq_wunifrac, metadata$Species_Name_Phylo)
+sm_physeq_wunifrac_meanDist_dist <- dist(sm_physeq_wunifrac_meanDist)
+
+rodents<-subset_samples(sm_physeq_rare, Species_Name_Phylo != "ELRU" & Species_Name_Phylo != "HARE_A" & Species_Name_Phylo != "HARE_B")
+rodents<- prune_samples(sample_sums(rodents) > 0, rodents)
+rodents<- prune_taxa(taxa_sums(rodents) > 0, rodents)
+unifrac_rodents_meta<-meta(rodents)
+unifrac_rodents = phyloseq::distance(rodents, "unifrac")
+unifrac_rodents_meanDist <- meandist(unifrac_rodents,  unifrac_rodents_meta$Species_Name_Phylo)
+wunifrac_rodents = phyloseq::distance(rodents, "unifrac", weighted=TRUE)
+wunifrac_rodents_meanDist <- meandist(wunifrac_rodents,  unifrac_rodents_meta$Species_Name_Phylo)
+wunifrac_rodents_meanDist
+```
+
+```{r}
+diet_sm_physeq_rare<-subset_samples(sm_physeq_rare, Species_Name_Phylo == "ELRU"|Species_Name_Phylo == "AEHI" | Species_Name_Phylo == "ARNI"|Species_Name_Phylo =="GERO"|Species_Name_Phylo =="SAME"|Species_Name_Phylo =="TAHA"|Species_Name_Phylo =="GRDO")
+diet_sm_physeq_rare<- prune_samples(sample_sums(diet_sm_physeq_rare) > 0, diet_sm_physeq_rare)
+diet_sm_physeq_rare<- prune_taxa(taxa_sums(diet_sm_physeq_rare) > 0, diet_sm_physeq_rare)
+diet_sm_physeq_rare_csv<-read_csv("~/Documents/Unknown_Figures/diet_sm_physeq_rare_update_2.csv", col_names = T)
+diet_sm_physeq_rare_csv<-diet_sm_physeq_rare_csv%>% remove_rownames %>% column_to_rownames(var="X1")
+sample_data(diet_sm_physeq_rare)<-diet_sm_physeq_rare_csv
+diet_sm_physeq_unifrac = phyloseq::distance(diet_sm_physeq_rare, "unifrac")
+diet_meta<-meta(diet_sm_physeq_rare)
+diet_sm_physeq_unifrac_meanDist <- meandist(diet_sm_physeq_unifrac, diet_meta$Species_Name_Phylo)
+diet_sm_physeq_unifrac_meanDist_dist<- dist(diet_sm_physeq_unifrac_meanDist)
+
+diet_sm_physeq_wunifrac = phyloseq::distance(diet_sm_physeq_rare, "unifrac",weighted=TRUE)
+diet_sm_physeq_wunifrac_meanDist <- meandist(diet_sm_physeq_wunifrac, diet_meta$Species_Name_Phylo)
+diet_sm_physeq_wunifrac_meanDist_dist<- dist(diet_sm_physeq_wunifrac_meanDist)
+```
+
+```{r}
+rodent_diet_sm_physeq_rare<-subset_samples(sm_physeq_rare,Species_Name_Phylo == "AEHI" | Species_Name_Phylo == "ARNI"|Species_Name_Phylo =="GERO"|Species_Name_Phylo =="SAME"|Species_Name_Phylo =="TAHA"|Species_Name_Phylo =="GRDO")
+rodent_diet_sm_physeq_rare<- prune_samples(sample_sums(rodent_diet_sm_physeq_rare) > 0, rodent_diet_sm_physeq_rare)
+rodent_diet_sm_physeq_rare<- prune_taxa(taxa_sums(rodent_diet_sm_physeq_rare) > 0, rodent_diet_sm_physeq_rare)
+rodent_diet_sm_physeq_rare_meta<-meta(rodent_diet_sm_physeq_rare)
+rodent_diet_sm_physeq_rare_unifrac = phyloseq::distance(rodent_diet_sm_physeq_rare, "unifrac")
+rodent_diet_sm_physeq_rare_unifrac_meanDist <- meandist(rodent_diet_sm_physeq_rare_unifrac, rodent_diet_sm_physeq_rare_meta$Species_Name_Phylo)
+rodent_diet_sm_physeq_rare_unifrac_meanDist_dist <- dist(rodent_diet_sm_physeq_rare_unifrac_meanDist)
+rodent_diet_sm_physeq_rare_wunifrac = phyloseq::distance(rodent_diet_sm_physeq_rare, "unifrac",weight=TRUE)
+rodent_diet_sm_physeq_rare_wunifrac_meanDist <- meandist(rodent_diet_sm_physeq_rare_wunifrac, rodent_diet_sm_physeq_rare_meta$Species_Name_Phylo)
+rodent_diet_sm_physeq_rare_wunifrac_meanDist_dist <- dist(rodent_diet_sm_physeq_rare_wunifrac_meanDist)
+```
+
+#Diet metadata
+```{r}
+diet<-read.csv("~/Documents/Analysis/Chapter_1/R/chapter_1_diet_data.csv", header=T)
+diet$Mean.D13C<-abs(diet$Mean.D13C)
+rodent_diet <- subset(diet, Species_Name_Phylo !="GRMI"& Species_Name_Phylo!="ELRU")
+
+diet_sea<-diet %>% dplyr::select(Species_Name_Phylo,SEA)
+diet<-diet%>% remove_rownames %>% column_to_rownames(var="Species_Name_Phylo")
+diet_mean<-diet %>% dplyr::select(Mean.D13C,Mean.d15N)
+diet_mean$Mean.D13C<- abs(diet_mean$Mean.D13C)
+diet_mean_Dist <- dist(diet_mean, method = "euclidean")
+rodent_diet_sea<- rodent_diet %>% dplyr::select(Species_Name_Phylo,SEA)
+rodent_diet<-rodent_diet %>% dplyr::select(Species_Name_Phylo,Mean.D13C,Mean.d15N)
+rodent_diet<- rodent_diet %>% remove_rownames %>% column_to_rownames(var="Species_Name_Phylo")
+rodent_diet_Dist <- dist(rodent_diet, method = "euclidean")
+rodent_diet_sea <-rodent_diet_sea%>% remove_rownames %>% column_to_rownames(var="Species_Name_Phylo")
+rodent_diet_sea_dist <- dist(rodent_diet_sea, method = "euclidean")
+diet_sea <-diet_sea %>% remove_rownames %>% column_to_rownames(var="Species_Name_Phylo")
+diet_sea_Dist <- dist(diet_sea, method = "euclidean")
+
+```
+#Weight metadata
+```{r}
+metadata<-meta(sm_physeq_rare)
+metadata_weight <- subset(metadata, !(is.na(weight.g.)))
+metadata_weight <- metadata_weight %>%
+  dplyr::group_by(Species_Name_Phylo) %>%
+  dplyr::summarise(fmean= mean(log(weight.g.)))
+
+metadata_weight$fmean[7.624184]<-"7.742499"
+metadata_weight$fmean[8]<-"7.742499"
+metadata_weight_beta<-metadata_weight %>% remove_rownames %>% column_to_rownames(var="Species_Name_Phylo")
+metadata_weight_beta_Dist <- dist(metadata_weight_beta)
+metadata_weight_beta_Dist
+
+rodent_metadata_weight<-subset(metadata_weight,Species_Name_Phylo!="HARE_A"&Species_Name_Phylo!="HARE_B"& Species_Name_Phylo!="ELRU")
+rodent_metadata_weight
+rodent_metadata_weight_beta<-rodent_metadata_weight%>% remove_rownames %>% column_to_rownames(var="Species_Name_Phylo")
+rodent_metadata_weight_beta
+rodent_metadata_weight_beta_Dist <- dist(rodent_metadata_weight_beta)
+rodent_metadata_weight_beta_Dist
+```
+
+```{r}
+tree<-read_tree("~/Documents/Analysis/Chapter_1/R/small_mammal_tree_bladj")
+list_2<- c( "Vombatus_ursinus","GRMI")
+tree <- drop.tip(tree,which((tree$tip.label %in% list_2)))
+tree_matrix<-cophenetic(tree)
+tree_matrix <- tree_matrix[order(rownames(tree_matrix)),order(colnames(tree_matrix))]
+tree_matrix<-sqrt(tree_matrix)
+tree_matrix_dist <- dist(tree_matrix)
+
+list_3<- c("HARE_A","HARE_B","ELRU")
+rodent_tree <- drop.tip(tree,which((tree$tip.label %in% list_3)))
+plot(rodent_tree)
+rodent_tree_matrix<-cophenetic(rodent_tree)
+rodent_tree_matrix <- rodent_tree_matrix[order(rownames(rodent_tree_matrix)),order(colnames(rodent_tree_matrix))]
+rodent_tree_matrix<-sqrt(rodent_tree_matrix)
+rodent_tree_matrix_dist <- dist(rodent_tree_matrix)
+
+list_4<- c( "Vombatus_ursinus","GRMI","HARE_A","HARE_B","Mus_spp._I","Mus_spp._II","Mus_spp._III","ACKE","Steatomys_sp.")
+diet_tree <- drop.tip(tree,which((tree$tip.label %in% list_4)))
+diet_tree_matrix<-cophenetic(diet_tree)
+diet_tree_matrix <- diet_tree_matrix[order(rownames(diet_tree_matrix)),order(colnames(diet_tree_matrix))]
+diet_tree_matrix <- sqrt(diet_tree_matrix)
+diet_tree_matrix_dist <- dist(diet_tree_matrix)
+
+list_5<- c( "Vombatus_ursinus","GRMI","HARE_A","ELRU","HARE_B","Mus_spp._I","Mus_spp._II","Mus_spp._III","ACKE","Steatomys_sp.")
+rodent_diet_tree <- drop.tip(tree,which((tree$tip.label %in% list_5)))
+plot(rodent_diet_tree)
+diet_rodent_tree_matrix<-cophenetic(rodent_diet_tree)
+diet_rodent_tree_matrix <- diet_rodent_tree_matrix[order(rownames(diet_rodent_tree_matrix)),order(colnames(diet_rodent_tree_matrix))]
+diet_rodent_tree_matrix <- sqrt(diet_rodent_tree_matrix)
+diet_rodent_tree_matrix_dist <- dist(diet_rodent_tree_matrix)
+```
+
+#Mantel Test
+
+
+```{r}
+sm_physeq_unifrac_meanDist_dist_1<-as.matrix(sm_physeq_unifrac_meanDist_dist)
+sm_physeq_unifrac_meanDist_dist_1[sm_physeq_unifrac_meanDist_dist_1== 0] <- NA 
+sm_physeq_wunifrac_meanDist_dist_1<-as.matrix(sm_physeq_wunifrac_meanDist_dist)
+sm_physeq_wunifrac_meanDist_dist_1[sm_physeq_wunifrac_meanDist_dist_1== 0] <- NA 
+
+metadata_weight_beta_Dist_1<-as.matrix(metadata_weight_beta_Dist)
+metadata_weight_beta_Dist_1[metadata_weight_beta_Dist_1== 0] <- NA
+
+rodent_metadata_weight_beta_Dist<-as.matrix(rodent_metadata_weight_beta_Dist)
+rodent_metadata_weight_beta_Dist[rodent_metadata_weight_beta_Dist== 0] <- NA
+
+rodent_physeq_wunifrac_meanDist_dist <-dist(wunifrac_rodents_meanDist)
+rodent_physeq_unifrac_meanDist_dist <-dist(unifrac_rodents_meanDist)
+
+rodent_diet_sm_physeq_unifrac_meanDist<- dist(rodent_diet_sm_physeq_rare_unifrac_meanDist)
+
+rodent_diet_sm_physeq_wunifrac_meanDist<- dist(rodent_diet_sm_physeq_rare_wunifrac_meanDist)
+
+
+
+lmr<-lm(sm_physeq_unifrac_meanDist_dist~tree_matrix_dist)
+#plot(rodent_physeq_unifrac_meanDist_dist_2 ~rodent_tree_matrix_dist)
+xpts <- range(tree_matrix_dist)
+ypts <- predict(lmr, data.frame(tree_matrix_dist= xpts))
+plot(as.matrix(sm_physeq_unifrac_meanDist_dist)~as.matrix(tree_matrix_dist),ylim=c(0.0,0.6),xlim=c(0,35),pch=ifelse(sm_physeq_unifrac_meanDist_dist_1 %in%sm_physeq_unifrac_meanDist_dist_1[c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),c(4,7,8)],3,16),cex=2)
+abline(summary(lm(sm_physeq_unifrac_meanDist_dist~tree_matrix_dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+abline(summary(lm(sm_physeq_unifrac_meanDist_dist~tree_matrix_dist)), col="grey",lwd=3)
+
+#col=metadata_species$Order_Cols,cex=2
+
+lmr<-lm(sm_physeq_wunifrac_meanDist_dist~tree_matrix_dist)
+#plot(rodent_physeq_unifrac_meanDist_dist_2 ~rodent_tree_matrix_dist)
+xpts <- range(tree_matrix_dist)
+ypts <- predict(lmr, data.frame(tree_matrix_dist= xpts))
+plot(as.matrix(sm_physeq_wunifrac_meanDist_dist)~as.matrix(tree_matrix_dist),ylim=c(0.0,0.6),xlim=c(0,35),pch=ifelse(sm_physeq_wunifrac_meanDist_dist_1 %in%sm_physeq_wunifrac_meanDist_dist_1[c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),c(4,7,8)],3,16),cex=2)
+abline(summary(lm(sm_physeq_wunifrac_meanDist_dist~tree_matrix_dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+abline(summary(lm(sm_physeq_wunifrac_meanDist_dist~tree_matrix_dist)), col="grey",lwd=3)
+
+lmr<-lm(sm_physeq_unifrac_meanDist_dist~metadata_weight_beta_Dist)
+xpts <- range(metadata_weight_beta_Dist)
+ypts <- predict(lmr, data.frame(metadata_weight_beta_Dist= xpts))
+#lines(ypts ~ xpts, lwd = 1.5)
+plot(sm_physeq_unifrac_meanDist_dist~metadata_weight_beta_Dist,ylim=c(0.0,0.6),xlim=c(0,7),pch=ifelse(sm_physeq_unifrac_meanDist_dist_1 %in%sm_physeq_unifrac_meanDist_dist_1[c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),c(4,7,8)] ,3,16),cex=2)
+abline(summary(lm(sm_physeq_unifrac_meanDist_dist~metadata_weight_beta_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+#col=metadata_species$Order_Cols,cex=2
+#abline(summary(lm(rodent_physeq_unifrac_meanDist_dist_2~rodent_metadata_weight_beta_Dist)))
+
+lmr<-lm(sm_physeq_wunifrac_meanDist_dist~metadata_weight_beta_Dist)
+xpts <- range(metadata_weight_beta_Dist)
+ypts <- predict(lmr, data.frame(metadata_weight_beta_Dist= xpts))
+#lines(ypts ~ xpts, lwd = 1.5)
+plot(sm_physeq_wunifrac_meanDist_dist~metadata_weight_beta_Dist,ylim=c(0.0,0.6),xlim=c(0,7),pch=ifelse(sm_physeq_wunifrac_meanDist_dist_1 %in%sm_physeq_wunifrac_meanDist_dist_1[c(1,2,3,4,5,6,7,8,9,10,11,12,13,14),c(4,7,8)] ,3,16),cex=2)
+abline(summary(lm(sm_physeq_wunifrac_meanDist_dist~metadata_weight_beta_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+
+
+#diet_sm_physeq_rare_unifrac_meanDist_dist_2<-as.matrix(diet_sm_physeq_unifrac_meanDist_dist)
+#diet_sm_physeq_rare_unifrac_meanDist_dist_2[diet_sm_physeq_rare_unifrac_meanDist_dist_2== 0] <- NA
+
+#diet_sm_physeq_rare_wunifrac_meanDist_dist_2<-as.matrix(diet_sm_physeq_wunifrac_meanDist_dist)
+#diet_sm_physeq_rare_wunifrac_meanDist_dist_2[diet_sm_physeq_rare_wunifrac_meanDist_dist_2== 0] <- NA
+
+#diet_sm_physeq_rare_unifrac_meanDist_dist
+
+#diet_sm_physeq_unifrac_meanDist
+
+#lmr<-lm(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_Dist)
+#xpts <- range(rodent_diet_Dist)
+#ypts <- predict(lmr, data.frame(rodent_diet_Dist= xpts))
+#plot(diet_sm_physeq_unifrac_meanDist_dist~diet_mean_Dist,ylim=c(0.0,1),xlim=c(0,12),pch=ifelse(diet_sm_physeq_rare_unifrac_meanDist_dist_2 #%in%diet_sm_physeq_rare_unifrac_meanDist_dist_2[c(1,2,3,4,5,6,7),c(3)] ,3,16),cex=2)
+#abline(summary(lm(diet_sm_physeq_rare_unifrac_meanDist_dist~diet_mean_Dist)))
+#lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+#abline(summary(lm(diet_sm_physeq_unifrac_meanDist_dist~diet_mean_Dist)), col="grey",lwd=3)
+
+#col=diet_sm_physeq_rare_meta_species$Order_Cols,cex=2
+
+lmr<-lm(diet_sm_physeq_unifrac_meanDist_dist~diet_mean_Dist)
+xpts <- range(diet_mean_Dist)
+ypts <- predict(lmr, data.frame(diet_mean_Dist= xpts))
+plot(diet_sm_physeq_unifrac_meanDist_dist~diet_mean_Dist,ylim=c(0.00,1),main="All SM Weighted Unifrac vs. Diet",pch=ifelse(diet_sm_physeq_rare_wunifrac_meanDist_dist_2 %in%diet_sm_physeq_rare_unifrac_meanDist_dist_2[c(1,2,3,4,5,6,7),c(3)] ,3,16),cex=2)
+abline(summary(lm(diet_sm_physeq_unifrac_meanDist_dist~diet_mean_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+#col=diet_sm_physeq_rare_meta_species$Order_Cols,cex=2
+
+lmr<-lm(diet_sm_physeq_wunifrac_meanDist_dist~diet_mean_Dist)
+xpts <- range(diet_mean_Dist)
+ypts <- predict(lmr, data.frame(diet_mean_Dist= xpts))
+plot(diet_sm_physeq_wunifrac_meanDist_dist~diet_mean_Dist,ylim=c(0.00,1),main="All SM Weighted Unifrac vs. Diet",pch=ifelse(diet_sm_physeq_rare_wunifrac_meanDist_dist_2 %in%diet_sm_physeq_rare_wunifrac_meanDist_dist_2[c(1,2,3,4,5,6,7),c(3)] ,3,16),cex=2)
+abline(summary(lm(diet_sm_physeq_wunifrac_meanDist_dist~diet_mean_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+#abline(summary(lm(rodent_diet_sm_physeq_wunifrac_meanDist_2 ~rodent_diet_Dist)),lty=2, lwd=3)
+```
+
+#Rodent only
+```{r}
+
+lmr<-lm(rodent_physeq_unifrac_meanDist_dist ~rodent_tree_matrix_dist)
+xpts <- range(rodent_tree_matrix_dist)
+ypts <- predict(lmr, data.frame(rodent_tree_matrix_dist= xpts))
+#lines(ypts ~ xpts, lwd = 1.5)
+plot(rodent_physeq_unifrac_meanDist_dist ~rodent_tree_matrix_dist,ylim=c(0.00,1),pch=19,cex=2)
+#abline(summary(lm(rodent_physeq_unifrac_meanDist_dist ~rodent_tree_matrix_dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+
+lmr<-lm(rodent_physeq_wunifrac_meanDist_dist ~rodent_tree_matrix_dist)
+xpts <- range(rodent_tree_matrix_dist)
+ypts <- predict(lmr, data.frame(rodent_tree_matrix_dist= xpts))
+#lines(ypts ~ xpts, lwd = 1.5)
+plot(rodent_physeq_wunifrac_meanDist_dist ~rodent_tree_matrix_dist,ylim=c(0.00,1),pch=19,cex=2)
+#abline(summary(lm(rodent_physeq_wunifrac_meanDist_dist ~rodent_tree_matrix_dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+
+
+lmr<-lm(rodent_physeq_unifrac_meanDist_dist~rodent_metadata_weight_beta_Dist)
+xpts <- range(rodent_metadata_weight_beta_Dist)
+ypts <- predict(lmr, data.frame(rodent_metadata_weight_beta_Dist= xpts))
+#lines(ypts ~ xpts, lwd = 1.5)
+plot(rodent_physeq_unifrac_meanDist_dist~rodent_metadata_weight_beta_Dist,ylim=c(0.0,1.0),pch=19,cex=2)
+#abline(summary(lm(rodent_physeq_unifrac_meanDist_dist~rodent_metadata_weight_beta_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+#col=metadata_species$Order_Cols,cex=2
+#abline(summary(lm(rodent_physeq_unifrac_meanDist_dist_2~rodent_metadata_weight_beta_Dist)))
+
+lmr<-lm(rodent_physeq_wunifrac_meanDist_dist~rodent_metadata_weight_beta_Dist)
+xpts <- range(rodent_metadata_weight_beta_Dist)
+ypts <- predict(lmr, data.frame(rodent_metadata_weight_beta_Dist= xpts))
+#lines(ypts ~ xpts, lwd = 1.5)
+plot(rodent_physeq_wunifrac_meanDist_dist~rodent_metadata_weight_beta_Dist,ylim=c(0.0,1.0),pch=19,cex=2)
+#abline(summary(lm(rodent_physeq_wunifrac_meanDist_dist~rodent_metadata_weight_beta_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+#abline(summary(lm(rodent_physeq_wunifrac_meanDist_dist_2~rodent_metadata_weight_beta_Dist)))
+
+
+
+lmr<-lm(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_Dist)
+xpts <- range(rodent_diet_Dist)
+ypts <- predict(lmr, data.frame(rodent_diet_Dist= xpts))
+plot(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_Dist,ylim=c(0.00,1),main="Weighted Unifrac vs. Diet",cex=2,pch = 19)
+#abline(summary(lm(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+
+lmr<-lm(rodent_diet_sm_physeq_wunifrac_meanDist ~rodent_diet_Dist)
+xpts <- range(rodent_diet_Dist)
+ypts <- predict(lmr, data.frame(rodent_diet_Dist= xpts))
+plot(rodent_diet_sm_physeq_wunifrac_meanDist ~rodent_diet_Dist,ylim=c(0.00,1),main="All SM Weighted Unifrac vs. Diet",pch = 19,cex=2)
+#abline(summary(lm(rodent_diet_sm_physeq_wunifrac_meanDist ~rodent_diet_Dist)), col="grey",lwd=3)
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+
+
+lmr<-lm(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_sea_dist)
+xpts <- range(rodent_diet_sea_dist)
+ypts <- predict(lmr, data.frame(rodent_diet_sea_dist= xpts))
+plot(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_sea_dist,ylim=c(0.0,1),pch=19,cex=2)
+#abline(summary(lm(diet_sm_physeq_rare_unifrac_meanDist_dist~diet_mean_Dist)))
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+#abline(summary(lm(rodent_diet_sm_physeq_unifrac_meanDist ~rodent_diet_sea_dist)), col="grey",lwd=3)
+
+#col=diet_sm_physeq_rare_meta_species$Order_Cols,cex=2
+
+lmr<-lm(rodent_diet_sm_physeq_wunifrac_meanDist ~rodent_diet_sea_dist)
+xpts <- range(rodent_diet_sea_dist)
+ypts <- predict(lmr, data.frame(rodent_diet_sea_dist= xpts))
+plot(rodent_diet_sm_physeq_wunifrac_meanDist ~rodent_diet_sea_dist,ylim=c(0.0,1),pch=19,cex=2)
+#abline(summary(lm(diet_sm_physeq_rare_unifrac_meanDist_dist~diet_mean_Dist)))
+lines(ypts ~ xpts,lty=2, lwd=3, col="grey")
+#abline(summary(lm(rodent_diet_sm_physeq_wunifrac_meanDist ~rodent_diet_sea_dist)), col="grey",lwd=3)
+
+```
+#SEA all aninals
+```{r}
+lmr<-lm(as.dist(diet_sm_physeq_unifrac_meanDist)~diet_sea_Dist)
+xpts <- range(diet_sea_Dist)
+ypts <- predict(lmr, data.frame(diet_sea_Dist= xpts))
+plot(as.dist(diet_sm_physeq_unifrac_meanDist)~diet_sea_Dist,pch=19,cex=2,ylim=c(0.00,1.00),xlab="SEA", ylab="Unifrac")
+#abline(summary(lm(diet_sm_physeq_rare_unifrac_meanDist_dist~diet_mean_Dist)))
+lines(ypts ~ xpts,lwd=3,col="grey")
+
+lmr<-lm(as.dist(diet_sm_physeq_wunifrac_meanDist)~diet_sea_Dist)
+xpts <- range(diet_sea_Dist)
+ypts <- predict(lmr, data.frame(diet_sea_Dist= xpts))
+plot(as.dist(diet_sm_physeq_wunifrac_meanDist)~diet_sea_Dist,pch=19,ylim=c(0.00,1.00),cex=2,xlab="SEA", ylab="wUnifrac")
+#abline(summary(lm(diet_sm_physeq_rare_unifrac_meanDist_dist~diet_mean_Dist)))
+lines(ypts ~ xpts,lwd=3, col="grey")
+
+```
+
